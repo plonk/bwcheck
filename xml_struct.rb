@@ -35,8 +35,7 @@ class XmlStruct
   def create_attrs attrs
     @xml.attributes.each do |name, attr|
       value = attr.value
-      attr_name, elem_name, type = attrs.find { |a| a[1] == name } || [name.to_sym, name, :string
-]
+      attr_name, elem_name, type = attrs.find { |a| a[1] == name } || [name.to_sym, name, :string]
       case type
       when :string
         self.define_singleton_method attr_name do

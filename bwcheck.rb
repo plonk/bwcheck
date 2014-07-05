@@ -1,13 +1,83 @@
 #!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
-require 'nokogiri'
-require 'open-uri'
-require 'thor'
-require 'yaml'
 require_relative 'uptest_status'
 require_relative 'yellow_page'
 
-module Subroutines
+class BWCheckImp
+  attr_reader :options
+
+  def initialize(options)
+    @options = options
+  end
+
+  def show(name)
+    if name == 'all'
+      show_all
+    else
+      if yp = YellowPage.find(name)
+        puts fmt yp.uptest_status
+      else
+        yp_not_registered(name)
+      end
+    end
+  end
+
+  def show_all
+    YellowPage.all.each_pair do |mnem, yp|
+      st = yp.uptest_status
+      speed = st.host.speed == 0 ? '未測定' : "#{st.host.speed.to_s}Kbps"
+      puts "#{mnem}: #{speed}"
+    end
+  end
+
+  def add name, url
+    fail 'all is a keyword' if name == 'all'
+    YellowPage.add name, url
+    YellowPage.save
+  rescue StandardError => e
+    puts "error (#{e.message})"
+  end
+
+  def remove name
+    YellowPage.remove name
+    YellowPage.save
+  rescue StandardError => e
+    puts "error (#{e.message})"
+  end
+
+  def list
+    YellowPage.all.each_pair do |mnemonic, yp|
+      puts "#{mnemonic}: #{yp.url}"
+    end
+  end
+
+  def check(target)
+    if target == 'all'
+      YellowPage.all.each_key do |ypname|
+        check_one(ypname)
+      end
+    else
+      check_one(target)
+    end
+  end
+
+  def check_one(target)
+    unless yp = YellowPage.find(target)
+      yp_not_registered(target)
+      return
+    end
+
+    before = yp.uptest_status
+    if options[:force] || before.host.speed == 0
+      if success = do_check(before)
+        after = yp.reload.uptest_status
+        puts "#{before.host.speed}Kbps → #{after.host.speed}Kbps"
+      end
+    else
+      puts "#{yp.name} は測定済み(#{before.host.speed}Kbps)です。(use --force)"
+    end
+  end
+
   def random_data(data_size)
     'a' * data_size
   end
@@ -46,15 +116,16 @@ EOD
     URI.parse("http://#{srv.addr}:#{srv.port}#{srv.object}")
   end
 
-  def show_message(srv)
+  def show_uploading_message(srv)
     print "uploading #{srv.post_size} KiB to #{up_address(srv)} ... "
     STDOUT.flush
   end
 
   def run(status)
     srv = status.uptest_srv
-    show_message(srv)
-    Net::HTTP.post_form(up_address(srv), {'file'=>random_data(srv.post_size * 1000) })
+
+    show_uploading_message(srv)
+    Net::HTTP.post_form(up_address(srv), { 'file'=>random_data(srv.post_size * 1000) })
   end
 
   def do_check(st)
@@ -74,80 +145,3 @@ EOD
     puts "#{name} は登録されていません。\nbwcheck add URL で登録できます。"
   end
 end
-
-class BWCheck < Thor
-  include Subroutines
-
-  class_option :verbose, type: :boolean
-
-  desc 'show [YP]', '帯域情報表示'
-  def show(name = 'all')
-    if name == 'all'
-      YellowPage.all.each_value do |yp|
-        puts fmt yp.uptest_status
-      end
-    else
-      yp = YellowPage.find(name)
-      if yp
-        puts fmt yp.uptest_status
-      else
-        yp_not_registered(name)
-      end
-    end
-  end
-
-  desc 'add NAME URL', 'イエローページを追加'
-  def add(name, url)
-    begin
-      YellowPage.add name, url
-    rescue StandardError => e
-      puts "error (#{e.message})"
-    end
-    YellowPage.save
-  end
-
-  desc 'remove YP', 'イエローページを削除'
-  def remove(name)
-    YellowPage.remove name
-    YellowPage.save
-  end
-
-  desc 'list', 'イエローページ一覧'
-  def list
-    YellowPage.all.each_pair do |mnemonic, yp|
-      puts "#{mnemonic}: #{yp.url}"
-    end
-  end
-
-  desc 'check [YP]', '帯域測定を行う'
-  method_options %w( force -f ) => :boolean
-  def check(target = 'all')
-    if target == 'all'
-      yps = YellowPage.all.each_pair
-    else
-      unless YellowPage.find(target)
-        yp_not_registered(target)
-        return
-      end
-
-      yps = [[target, YellowPage.find(target)]]
-    end
-
-    yps.each do |mnemonic, yp|
-      st = yp.uptest_status
-      if options[:force] || st.host.speed == 0
-        success = do_check(st)
-        if success
-          yp.reload
-          old_speed = st.host.speed
-          new_speed = yp.uptest_status.host.speed
-          puts "#{old_speed}Kbps → #{new_speed}Kbps"
-        end
-      else
-        puts "#{yp.name} は測定済み(#{yp.uptest_status.host.speed}Kbps)です。bwcheck check #{mnemonic} --force で再測定できます。"
-      end
-    end
-  end
-end
-
-BWCheck.start(ARGV)

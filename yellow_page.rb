@@ -1,3 +1,7 @@
+require 'nokogiri'
+require 'open-uri'
+require 'yaml'
+
 class YellowPage
   class << self
     URL_LIST = ENV['HOME'] + '/' + '.bwcheckrc'
@@ -57,6 +61,7 @@ class YellowPage
     xml = Nokogiri::XML open(@url + 'yp4g.xml')
     @uptest_status = UptestStatus.new xml.css('yp4g').first
     @name = uptest_status.yp.name
+    self
   end
 
   def trim(url)

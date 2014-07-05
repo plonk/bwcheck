@@ -7,11 +7,11 @@ bwcheck -- YP4G uptest 用帯域測定クライアント
 
 使っているライブラリは Nokogiri と Thor です。
 
-  $ gem install nokogiri thor
+    $ gem install nokogiri thor
 
 bwcheck に実行ビットを付けてパスの通っているところに置いてください。
 
-  $ install -m 755 bwcheck.rb ~/bin/bwcheck
+    $ install -m 755 bwcheck.rb ~/bin/bwcheck
 
 など。
 

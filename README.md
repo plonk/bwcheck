@@ -17,12 +17,12 @@ bwcheck に実行ビットを付けてパスの通っているところに置い
 
 使用例:
 
-  $ bwcheck add tp http://temp.orz.hm/yp/	# TP を追加
-  $ bwcheck add sp http://bayonet.ddo.jp/sp/	# SP を追加
-  $ bwcheck list				# 登録した YP 一覧
-  tp: http://temp.orz.hm/yp/
-  sp: http://bayonet.ddo.jp/sp/
-  $ bwcheck show tp				# TP での測定情報
-  $ bwcheck check sp				# SP で測定
-  $ bwcheck check				# 未測定の YP で測定
-  $ bwcheck check --force			# 全ての YP で再測定
+    $ bwcheck add tp http://temp.orz.hm/yp/	# TP を追加
+    $ bwcheck add sp http://bayonet.ddo.jp/sp/	# SP を追加
+    $ bwcheck list				# 登録した YP 一覧
+    tp: http://temp.orz.hm/yp/
+    sp: http://bayonet.ddo.jp/sp/
+    $ bwcheck show tp				# TP での測定情報
+    $ bwcheck check sp				# SP で測定
+    $ bwcheck check				# 未測定の YP で測定
+    $ bwcheck check --force			# 全ての YP で再測定
